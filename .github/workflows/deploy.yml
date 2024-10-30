@@ -44,5 +44,5 @@ jobs:
           AWS_REGION: "us-east-1" # Set your AWS region here
         run: |
           aws lambda update-function-code \
-            --function-name "<Your Lambda Function Name>" \
+            --function-name "TestLambda2" \
             --zip-file fileb://function.zip
