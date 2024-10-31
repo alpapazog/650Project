@@ -1,0 +1,37 @@
+name: Deploy Lambda Function
+
+on:
+  push:
+    branches:
+      - main  # Change this if your default branch is different
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12.5'  # Use the appropriate Python version
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Zip Lambda function
+        run: |
+          zip -r my_lambda_function.zip .  # Zips the current directory contents
+
+      - name: Deploy to AWS Lambda
+        uses: aws-actions/aws-lambda-deploy@v0.3.0
+        with:
+          function-name: WeatherAPIHandler  # Replace with your Lambda function name
+          zip-file: my_lambda_function.zip
+          region: us-east-1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}  # Set these in the repository secrets
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}  # Set these in the repository secrets
