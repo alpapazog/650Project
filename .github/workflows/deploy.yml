@@ -10,27 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '14'  # Specify the Node.js version you are using
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: Build the project
-      run: npm run build  # If you're using a build step (like TypeScript)
+      - name: Build the project
+        run: npm run build
 
-    - name: Package Lambda function
-      run: zip -r function.zip . -x "*.git*" "*.ts" "*.md" "node_modules/.bin/*"
+      - name: Package the Lambda function
+        run: zip -r function.zip . -x "*.git*" "*.ts" "*.md" "node_modules/.bin/*"
 
-    - name: Deploy to AWS Lambda
-      uses: aws-actions/aws-lambda-deploy@v1
-      with:
-        function-name: my-lambda-function
-        zip-file: function.zip
-        region: us-east-1
-        role: arn:aws:iam::123456789012:role/execution_role  # Your IAM role ARN
+      - name: Deploy to AWS Lambda
+        uses: einaregilsson/lambda-deploy@v0.5.0
+        with:
+          function_name: your_lambda_function_name
+          zip_file: function.zip
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          region: your_region
