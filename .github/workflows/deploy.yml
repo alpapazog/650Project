@@ -28,7 +28,7 @@ jobs:
 
       # 4. Zip the compiled files
       - name: Zip the files
-        run: zip -r function.zip dist
+        run: zip -r function.zip dist node_modules
 
       # 5. Install AWS CLI
       - name: Install AWS CLI
