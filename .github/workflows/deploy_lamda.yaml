@@ -20,11 +20,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r src/requirements.txt
+          pip install -r src/requirements.txt -t src/  # Install to src directory
 
       - name: Zip Lambda function
         run: |
-          zip -r my_lambda_function.zip .  # Zips the current directory contents
+          cd src  # Change directory to src
+          zip -r ../my_lambda_function.zip .  # Zip everything in src
 
       - name: Deploy to AWS Lambda
         env:
