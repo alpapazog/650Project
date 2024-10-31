@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.12.5'  # Use the appropriate Python version
+          python-version: '3.12'  # Use the appropriate Python version
 
       - name: Install dependencies
         run: |
@@ -33,5 +33,5 @@ jobs:
           AWS_REGION: "us-east-1" # Set your AWS region here
         run: |
           aws lambda update-function-code \
-            --function-name "TestLambda2" \
+            --function-name "WeatherAPIHandler" \
             --zip-file fileb://my_lambda_function.zip
