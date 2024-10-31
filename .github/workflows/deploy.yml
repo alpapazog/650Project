@@ -1,12 +1,12 @@
-name: Deploy Lambda Function
+name: Deploy to AWS Lambda
 
 on:
   push:
     branches:
-      - main
+      - main  # or your main branch
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,22 +16,30 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '16'
+          node-version: '16'  # Specify the version you need
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install
 
-      - name: Build the project
-        run: npm run build
+      - name: Build TypeScript
+        run: |
+          npm run build  # Ensure this command compiles TypeScript to the 'dist' folder
 
-      - name: Package the Lambda function
-        run: zip -r function.zip . -x "*.git*" "*.ts" "*.md" "node_modules/.bin/*"
+      - name: Create ZIP file
+        run: |
+          if [ -d dist ]; then
+            zip -r function.zip dist
+          else
+            echo "dist directory does not exist!"
+            exit 1
+          fi
 
       - name: Deploy to AWS Lambda
-        uses: einaregilsson/lambda-deploy@v0.5.0
+        uses: aws-actions/aws-lambda-deploy@v1
         with:
-          function_name: your_lambda_function_name
-          zip_file: function.zip
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          region: your_region
+          function-name: TestLambda2
+          zip-file: function.zip  # Reference the zip file created
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: your_aws_region
