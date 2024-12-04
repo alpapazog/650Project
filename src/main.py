@@ -1,48 +1,109 @@
-import os
 import json
 import boto3
 import requests
-from dotenv import load_dotenv
+from datetime import datetime
+from decimal import Decimal
 
-# Load environment variables from .env file
-load_dotenv()
-
-API_KEY = os.getenv("WEATHERSTACK_API_KEY")
-S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
-s3_client = boto3.client('s3')
-
-def respond_json(body, status_code):
-    return {
-        'statusCode': status_code,
-        'body': json.dumps(body)
-    }
+# Initialize DynamoDB client
+# THIS IS A COMMENT
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('weather_data_table')  # Replace with your actual DynamoDB table name
 
 def lambda_handler(event, context):
-    city = event['pathParameters']['city']
-    endpoint = 'http://api.weatherstack.com/current'
+    print("Starting Lambda function...")  # Debug log
+    
+    # Define the API URL
+    api_url = 'https://api.tomorrow.io/v4/weather/realtime?location=College%20park&units=metric&apikey=${{ secrets.WEATHER_API_KEY }}'
     
     try:
-        response = requests.get(endpoint, params={'access_key': API_KEY, 'query': city})
+        # Call the weather API
+        print("Calling weather API...")  # Debug log
+        response = requests.get(api_url)
         data = response.json()
+        print("API call successful, data received.")  # Debug log
         
-        if 'error' in data:
-            return respond_json({'error': data['error']['info']}, 400)
+        # Generate a unique timestamp
+        timestamp = datetime.now().isoformat()  # ISO format for unique timestamp
+        
+        # Extract relevant fields from the API response
+        values = data['data']['values']  # Ensure this is defined correctly
+        
+        # Helper function to convert float to Decimal for DynamoDB compatibility
+        def to_decimal(value):
+            return Decimal(str(value)) if isinstance(value, float) else value
 
-        weather_data = {
-            'city': data['location']['name'],
-            'temperature': data['current']['temperature'],
-            'textWeather': data['current']['weather_descriptions'],
+        # Prepare the item dictionary with Decimal conversion for float values
+        item = {
+            'timestamp': timestamp,
+            'temperature': to_decimal(values.get('temperature')),
+            'temperature_si': to_decimal(values.get('temperature-si')),
+            'temperature_us': to_decimal(values.get('temperature-us')),
+            'temperature_apparent': to_decimal(values.get('temperatureApparent')),
+            'dew_point': to_decimal(values.get('dewPoint')),
+            'dew_point_si': to_decimal(values.get('dewpoint-si')),
+            'dew_point_us': to_decimal(values.get('dewpoint-us')),
+            'humidity': to_decimal(values.get('humidity')),
+            'wind_speed': to_decimal(values.get('windSpeed')),
+            'wind_speed_si': to_decimal(values.get('wind-speed-si')),
+            'wind_speed_us': to_decimal(values.get('wind-speed-us')),
+            'wind_direction': to_decimal(values.get('windDirection')),
+            'wind_gust': to_decimal(values.get('windGust')),
+            'pressure_surface_level': to_decimal(values.get('pressureSurfaceLevel')),
+            'pressure_sea_level': to_decimal(values.get('pressureSeaLevel')),
+            'precipitation_intensity': to_decimal(values.get('precipitationIntensity')),
+            'precipitation_si': to_decimal(values.get('precip-si')),
+            'precipitation_us': to_decimal(values.get('precip-us')),
+            'rain_intensity': to_decimal(values.get('rainIntensity')),
+            'freezing_rain_intensity': to_decimal(values.get('freezingRainIntensity')),
+            'snow_intensity': to_decimal(values.get('snowIntensity')),
+            'sleet_intensity': to_decimal(values.get('sleetIntensity')),
+            'precipitation_probability': to_decimal(values.get('precipitationProbability')),
+            'precipitation_type': to_decimal(values.get('precipitationType')),
+            'rain_accumulation': to_decimal(values.get('rainAccumulation')),
+            'snow_accumulation': to_decimal(values.get('snowAccumulation')),
+            'snow_accumulation_lwe': to_decimal(values.get('snowAccumulationLwe')),
+            'snow_depth': to_decimal(values.get('snowDepth')),
+            'sleet_accumulation': to_decimal(values.get('sleetAccumulation')),
+            'sleet_accumulation_lwe': to_decimal(values.get('sleetAccumulationLwe')),
+            'ice_accumulation': to_decimal(values.get('iceAccumulation')),
+            'ice_accumulation_lwe': to_decimal(values.get('iceAccumulationLwe')),
+            'sunrise_time': values.get('sunriseTime'),
+            'sunset_time': values.get('sunsetTime'),
+            'visibility': to_decimal(values.get('visibility')),
+            'visibility_si': to_decimal(values.get('visibility-si')),
+            'visibility_us': to_decimal(values.get('visibility-us')),
+            'cloud_cover': to_decimal(values.get('cloudCover')),
+            'cloud_base': to_decimal(values.get('cloudBase')),
+            'cloud_ceiling': to_decimal(values.get('cloudCeiling')),
+            'moon_phase': to_decimal(values.get('moonPhase')),
+            'uv_index': to_decimal(values.get('uvIndex')),
+            'uv_health_concern': to_decimal(values.get('uvHealthConcern')),
+            'gdd_10_to_30': to_decimal(values.get('gdd10To30')),
+            'gdd_10_to_31': to_decimal(values.get('gdd10To31')),
+            'gdd_08_to_30': to_decimal(values.get('gdd08To30')),
+            'gdd_03_to_25': to_decimal(values.get('gdd03To25')),
+            'evapotranspiration': to_decimal(values.get('evapotranspiration')),
+            'weather_code_full_day': values.get('weatherCodeFullDay'),
+            'weather_code_day': values.get('weatherCodeDay'),
+            'weather_code_night': values.get('weatherCodeNight'),
+            'weather_code': values.get('weatherCode'),
+            'thunderstorm_probability': to_decimal(values.get('thunderstormProbability')),
+            'ez_heat_stress_index': to_decimal(values.get('ezHeatStressIndex'))
         }
-
-        # Store weather data in S3
-        s3_client.put_object(
-            Bucket=S3_BUCKET_NAME,
-            Key=f"weather_data/{city}.json",
-            Body=json.dumps(weather_data)
-        )
-
-        return respond_json(weather_data, 200)
+        
+        # Store data in DynamoDB
+        table.put_item(Item=item)
+        print("Data successfully saved to DynamoDB.")  # Debug log
+        
+        # Return a success response
+        return {
+            'statusCode': 200,
+            'body': json.dumps('Data saved to DynamoDB successfully')
+        }
     
     except Exception as e:
-        print(e)
-        return respond_json({'error': 'An error occurred while fetching weather data.'}, 500)
+        print("Error occurred:", e)  # Debug log for error
+        return {
+            'statusCode': 500,
+            'body': json.dumps('Error saving data')
+        }
