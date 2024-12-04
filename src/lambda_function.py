@@ -6,6 +6,7 @@ from datetime import datetime
 from botocore.exceptions import ClientError
 
 # Initialize DynamoDB client
+# this is a new comment
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('weather_data_table')  # Replace with your actual DynamoDB table name
 
