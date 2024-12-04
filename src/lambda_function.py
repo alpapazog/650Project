@@ -3,6 +3,7 @@ import boto3
 import requests
 import urllib.parse
 from datetime import datetime
+from decimal import Decimal
 from botocore.exceptions import ClientError
 
 # Initialize DynamoDB client
