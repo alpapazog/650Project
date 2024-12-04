@@ -1,19 +1,51 @@
 import json
 import boto3
 import requests
+import urllib.parse
 from datetime import datetime
-from decimal import Decimal
+from botocore.exceptions import ClientError
 
 # Initialize DynamoDB client
-# THIS IS A COMMENT
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('weather_data_table')  # Replace with your actual DynamoDB table name
+
+def get_secret():
+
+    secret_name = "WEATHER_API_KEY"
+    region_name = "us-east-2"
+
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        # For a list of exceptions thrown, see
+        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+        raise e
+
+    secret_string = get_secret_value_response['SecretString']
+    if secret_string:
+        # Parse the secret value (assuming it's a JSON string)
+        secret = json.loads(secret_string)
+        return secret['API_KEY']  # Assuming your secret is stored as {"apiKey": "your-api-key"}
+    else:
+        raise ValueError("SecretString is empty or not found")
+    
 
 def lambda_handler(event, context):
     print("Starting Lambda function...")  # Debug log
     
+    api_key = get_secret()
+    
     # Define the API URL
-    api_url = 'https://api.tomorrow.io/v4/weather/realtime?location=College%20park&units=metric&apikey=${{ secrets.WEATHER_API_KEY }}'
+    api_url = f'https://api.tomorrow.io/v4/weather/realtime?location=College%20park&units=metric&apikey={api_key}'
     
     try:
         # Call the weather API
